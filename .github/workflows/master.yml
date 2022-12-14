@@ -38,3 +38,13 @@ jobs:
               --set image=ttl.sh/devopslive-example-${{ github.run_id }} \
               --set host=devopslive-example-${{ github.run_id }}.k8s.sikademo.com
           kubeconfig: '${{ secrets.KUBECONFIG }}'
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            let url = "https://devopslive-example-${{ github.run_id }}.k8s.sikademo.com"
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: "Deployed to "+url,
+            });
