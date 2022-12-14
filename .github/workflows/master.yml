@@ -1,0 +1,19 @@
+
+name: Deploy Master Branch
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: ttl.sh/devopslive-example-${{ github.run_id }}
