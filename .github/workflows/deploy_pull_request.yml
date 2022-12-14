@@ -1,0 +1,62 @@
+name: Deploy Pull Request
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: ttl.sh/devopslive-example-${{ github.run_id }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      deployments: write
+      pull-requests: write
+
+    steps:
+      - name: Deploy
+        uses: WyriHaximus/github-action-helm3@v2
+        with:
+          exec: |
+            helm upgrade --install devopslive-example-${{ github.event.number }} \
+              one-image --repo https://helm.sikalabs.io \
+              --set image=ttl.sh/devopslive-example-${{ github.run_id }} \
+              --set host=devopslive-example-${{ github.event.number }}.k8s.sikademo.com
+          kubeconfig: '${{ secrets.KUBECONFIG }}'
+
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            let url = "https://devopslive-example-"+context.issue.number+".k8s.sikademo.com"
+            let deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              production_environment: false,
+              environment: "pull-"+context.issue.number,
+              transient_environment: true,
+              required_contexts: [],
+            })
+            github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: "success",
+              comment: "Yesss",
+              log_url: url,
+            })
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: "Deployed to "+url,
+            });
