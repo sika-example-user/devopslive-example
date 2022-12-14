@@ -42,6 +42,20 @@ jobs:
         with:
           script: |
             let url = "https://devopslive-example-${{ github.run_id }}.k8s.sikademo.com"
+            let deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.after,
+              production_environment: true,
+              required_contexts: [],
+            })
+            github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: "success",
+              log_url: url,
+            })
             github.rest.repos.createCommitComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
