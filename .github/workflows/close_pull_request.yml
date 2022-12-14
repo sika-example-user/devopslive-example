@@ -1,0 +1,33 @@
+name: Close Pull Request
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  helm-uninstall:
+    name: Helm uninstall
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Uninstall
+        uses: WyriHaximus/github-action-helm3@v2
+        with:
+          exec: |
+            helm uninstall exdevopslive-example-${{ github.event.number }}
+          kubeconfig: '${{ secrets.KUBECONFIG }}'
+
+  remove-deployment-and-environment:
+    name: Remove deployment & environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.TOKEN_DELETE_ENVIRONMENTS }}
+          script: |
+            github.rest.repos.deleteAnEnvironment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment_name: "pull-"+context.issue.number ,
+            });
